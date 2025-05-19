@@ -583,23 +583,23 @@ async def single_match(request: SingleMatchRequest):
                 Matched="No"
             )
             
-        payload = best_match.get('payload', {})
-        payload2 = best_match_in_inv_po.get('payload', {})
+        payload = best_match.get('payload', {}) if best_match != None else {}
+        payload2 = best_match_in_inv_po.get('payload', {}) if best_match_in_inv_po != None else {}
         original_line_item_data = payload2.get('original_line_item_data', {})
         
         logger.info(f"Found match with score: {best_match.get('score', 0):.4f}")
         logger.debug(f"Match payload: {payload}")
 
-        print(f"payload : {payload}")
-        print(f"payload2 : {payload2}")
+        # print(f"payload : {payload}")
+        # print(f"payload2 : {payload2}")
                 
         return SingleMatchResponse(
             Invoice_Description=request.description,
-            Document_Type=str(payload2.get('doc_type', '')),
-            Document_ID=str(payload2.get('doc_id', '')),
-            Part_description=payload.get('description'),
-            Part_ID=payload.get('part_number'),
-            Unit_of_measure=original_line_item_data.get('unit'),
+            Document_Type=str(payload2.get('doc_type', '-')),
+            Document_ID=str(payload2.get('doc_id', '-')),
+            Part_description=payload.get('description', None),
+            Part_ID=payload.get('part_number', None),
+            Unit_of_measure=original_line_item_data.get('unit', None),
             Similarity_Score=round(best_match.get('score', 0), 4),
             Matched="Yes" if best_match.get('score', 0) >= 0.6 else "No"
         )
