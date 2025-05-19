@@ -1,0 +1,141 @@
+{
+  "invoice_number": "0091226238",
+  "invoice_date": "12/04/2024",
+  "order_date": null,
+  "purchase_order_number": null,
+  "customer_number": null,
+  "vendor": {
+    "company_name": "Restoration Management Company",
+    "address": "3090 Independence Drive, Livermore CA 94551",
+    "phone_number": "(800) 400-5058",
+    "email": null
+  },
+  "bill_to": {
+    "company_name": "Restoration Management Company",
+    "address": "3090 Independence Drive, Livermore CA 94551",
+    "phone_number": null,
+    "email": null
+  },
+  "ship_to": {
+    "company_name": "Sacramento",
+    "address": "1804 Enterprise Blvd, West Sacramento CA 95691",
+    "phone_number": null,
+    "email": null
+  },
+  "line_items": [
+    {
+      "part_number": "5119",
+      "description": "BOXES - 1.5 SMALL (RMC)1",
+      "quantity": 1120.0,
+      "unit": "EA",
+      "price": 0.89,
+      "total": 996.8
+    },
+    {
+      "part_number": "5131",
+      "description": "BUBBLE - 3/16 SMALL (1/24",
+      "quantity": 8.0,
+      "unit": "RL",
+      "price": 57.53,
+      "total": 460.24
+    },
+    {
+      "part_number": "5132",
+      "description": "BUBBLE - 3/16 SMALL (4/12",
+      "quantity": 8.0,
+      "unit": "RL",
+      "price": 32.37,
+      "total": 258.96
+    },
+    {
+      "part_number": null,
+      "description": "LABELS - FRAGILE (STARB",
+      "quantity": null,
+      "unit": "RL",
+      "price": 16.63,
+      "total": null
+    },
+    {
+      "part_number": "5309",
+      "description": "LABELS - FRAGILE HANDLE",
+      "quantity": 5.0,
+      "unit": "RL/500",
+      "price": 20.53,
+      "total": 102.65
+    },
+    {
+      "part_number": "17935",
+      "description": "LABELS - THIS END UP FRA",
+      "quantity": 5.0,
+      "unit": "RL",
+      "price": 18.5,
+      "total": 92.5
+    },
+    {
+      "part_number": "5125",
+      "description": "PADS - MOVING BLANKET 7",
+      "quantity": 27.0,
+      "unit": "DZ",
+      "price": 125.0,
+      "total": 3375.0
+    },
+    {
+      "part_number": "5134",
+      "description": "PACKAGING ROLLED RE",
+      "quantity": 66.0,
+      "unit": "30LBS/BND",
+      "price": 20.5,
+      "total": 1353.0
+    },
+    {
+      "part_number": "4301",
+      "description": "FUEL SURCHARGE",
+      "quantity": 1.0,
+      "unit": "EA",
+      "price": 23.0,
+      "total": 23.0
+    },
+    {
+      "part_number": null,
+      "description": "sales tax",
+      "quantity": 1.0,
+      "unit": null,
+      "price": 547.75,
+      "total": 547.75
+    },
+    {
+      "part_number": null,
+      "description": "Invoice",
+      "quantity": null,
+      "unit": null,
+      "price": null,
+      "discount": null,
+      "retention": null,
+      "disc_available": null,
+      "total": "7,209.90"
+    },
+    {
+      "part_number": null,
+      "description": "Paid",
+      "quantity": null,
+      "unit": null,
+      "price": null,
+      "discount": null,
+      "retention": null,
+      "disc_available": null,
+      "total": "7,209.90"
+    }
+  ],
+  "net_amount": null,
+  "sales_tax": 547.75,
+  "total_due_usd": null,
+  "currency": null,
+  "terms": "30DY",
+  "due_date": "01/03/2025",
+  "ship_via": null,
+  "f_o_b": null,
+  "warehouse_location": null,
+  "salesperson": null,
+  "order_number": "NH-SAC-120224",
+  "notes": "1/7/2025 11:19:58 AM Virdi, Raj\nInvoice imported from Sage Paperless Construction.\nInvoice Processor: Raj Virdi\n1/7/2025 11:16:57 AM Virdi, Raj\nSYSTEM MESSAGE: This invoice was automatically approved by AP: Raj Virdi on 1/7/2025 11:16:57 AM"
+}
