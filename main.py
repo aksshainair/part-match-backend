@@ -17,9 +17,9 @@ from tqdm import tqdm
 import logging
 
 # Import our modules
-from services.embedding_service import get_embeddings, get_single_embedding
-from services.qdrant_service import QdrantService
-from models.document import (
+from .services.embedding_service import get_embeddings, get_single_embedding
+from .services.qdrant_service import QdrantService
+from .models.document import (
     DocumentInDB, DocumentCreate, DocumentResponse,
     MatchResult, BatchMatchResult, DocumentStatus, LineItem
 )
