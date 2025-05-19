@@ -44,8 +44,8 @@ A FastAPI-based service for matching invoice line items to a parts master catalo
    cd fastapi_app
    uvicorn main:app --reload
    ```
-2. The API will be available at `http://localhost:8000`
-3. API documentation (Swagger UI) will be available at `http://localhost:8000/docs`
+2. The API will be available at `https://part-match-backend.vercel.app/`
+3. API documentation (Swagger UI) will be available at `https://part-match-backend.vercel.app/docs`
 
 ## API Endpoints
 
