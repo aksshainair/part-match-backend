@@ -134,7 +134,7 @@ def parse_document_with_llm(text: str, doc_type_hint: str = None) -> Dict[str, A
 
 
 
-def extract_and_parse(file_content: bytes, upsert: bool = False, doc_type: str = "invoice", doc_id: str = "") -> Dict[str, Any]:
+def extract_and_parse(file_content: bytes, upsert: bool = False, db_doc_id: str = "") -> Dict[str, Any]:
     """
     Extract text from PDF, parse it with LLM, and return structured data.
     """
@@ -148,7 +148,9 @@ def extract_and_parse(file_content: bytes, upsert: bool = False, doc_type: str =
         # Ensure required fields
         if not parsed_data or 'line_items' not in parsed_data or not parsed_data['line_items']:
             raise ValueError("No line items found in the parsed document")
-            
+        
+        doc_type = parsed_data.get('doc_type', "")
+        doc_id = parsed_data.get('doc_id', "")
         line_items = parsed_data['line_items']
 
         if upsert:
@@ -163,7 +165,8 @@ def extract_and_parse(file_content: bytes, upsert: bool = False, doc_type: str =
                     "doc_type": doc_type,
                     "doc_id": doc_id,
                     "original_line_item_data": item,
-                    "description_text": desc
+                    "description_text": desc,
+                    "db_doc_id": db_doc_id
                 }
                 qdrant_service.upsert_line_item_to_qdrant(doc_id, idx, embedding, payload)
 
@@ -212,6 +215,8 @@ class SingleMatchRequest(BaseModel):
 
 class SingleMatchResponse(BaseModel):
     Invoice_Description: str
+    Document_Type: str
+    Document_ID: str
     Part_description: Optional[str] = None
     Part_ID: Optional[str] = None
     Unit_of_measure: Optional[str] = None
@@ -254,7 +259,7 @@ async def upload_document(file: UploadFile = File(...)):
         
         if existing_doc:
             logger.info(f"Document already exists with hash {content_hash}, skipping processing")
-            parsed_data = extract_and_parse(contents, upsert=False, doc_type="invoice", doc_id=str(existing_doc["_id"]))
+            parsed_data = extract_and_parse(contents, upsert=False, db_doc_id=str(existing_doc["_id"]))
             logger.debug(f"Extracted data from existing document: {parsed_data}")
             
             return DocumentUploadResponse(
@@ -289,7 +294,7 @@ async def upload_document(file: UploadFile = File(...)):
         # Process the document
         logger.info("Starting document processing")
         process_start = datetime.utcnow()
-        parsed_data = extract_and_parse(contents, upsert=True, doc_type="invoice", doc_id=doc_id)
+        parsed_data = extract_and_parse(contents, upsert=True, db_doc_id=doc_id)
         process_time = (datetime.utcnow() - process_start).total_seconds()
         logger.info(f"Document processing completed in {process_time:.2f} seconds")
         
@@ -457,33 +462,120 @@ async def batch_match_document(document_id: str):
         )
 
 @app.post("/single-match/", response_model=SingleMatchResponse)
+# async def single_match(request: SingleMatchRequest):
+#     """
+#     Find the best matching part for a single line item description.
+#     """
+#     try:
+#         if not request.description.strip():
+#             raise HTTPException(
+#                 status_code=status.HTTP_400_BAD_REQUEST,
+#                 detail="Description cannot be empty"
+#             )
+            
+#         # Get embedding for the description
+#         embedding = get_single_embedding(request.description)
+#         if not embedding:
+#             return SingleMatchResponse(
+#                 Invoice_Description=request.description,
+#                 Document_Type="",
+#                 Document_ID="",
+#                 Part_description=None,
+#                 Part_ID=None,
+#                 Unit_of_measure=None,
+#                 Similarity_Score=None,
+#                 Matched="No"
+#             )
+        
+#         # Search in Qdrant
+#         best_match = qdrant_service.find_best_match(embedding)
+#         best_match_in_inv_po = qdrant_service.find_best_match_in_inv_po(embedding)
+        
+#         if not best_match or best_match.get('score', 0) < 0.6:  # Threshold
+#             return SingleMatchResponse(
+#                 Invoice_Description=request.description,
+#                 Document_Type="",
+#                 Document_ID="",
+#                 Part_description=None,
+#                 Part_ID=None,
+#                 Unit_of_measure=None,
+#                 Similarity_Score=None,
+#                 Matched="No"
+#             )
+
+#         if not best_match_in_inv_po or best_match_in_inv_po.get('score', 0) < 0.6:  # Threshold
+#             return SingleMatchResponse(
+#                 Invoice_Description=request.description,
+#                 Document_Type="",
+#                 Document_ID="",
+#                 Part_description=None,
+#                 Part_ID=None,
+#                 Unit_of_measure=None,
+#                 Similarity_Score=None,
+#                 Matched="No"
+#             )
+            
+#         payload = best_match.get('payload', {})
+#         payload2 = best_match_in_inv_po.get('payload', {})
+#         return SingleMatchResponse(
+#             Invoice_Description=request.description,
+#             Document_Type=str(payload2.get('doc_type')),
+#             Document_ID=str(payload2.get('doc_id')),
+#             Part_description=payload.get('description'),
+#             Part_ID=payload.get('part_number'),
+#             Unit_of_measure=payload.get('unit_of_measure'),
+#             Similarity_Score=round(best_match.get('score', 0), 4),
+#             Matched="Yes" if best_match.get('score', 0) >= 0.6 else "No"
+#         )
+        
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Error processing match request: {str(e)}"
+#         )
+@app.post("/single-match/", response_model=SingleMatchResponse)
 async def single_match(request: SingleMatchRequest):
     """
     Find the best matching part for a single line item description.
     """
+    logger = logging.getLogger(__name__)
+    logger.info(f"Starting single match request for description: {request.description[:100]}...")
+    
     try:
         if not request.description.strip():
+            logger.warning("Received empty description in single match request")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Description cannot be empty"
             )
             
-        # Get embedding for the description
+        logger.debug("Generating embedding for description")
         embedding = get_single_embedding(request.description)
         if not embedding:
-            return SingleMatchResponse(
-                query=request.description,
-                best_match=None,
-                score=None,
-                matched=False
-            )
-        
-        # Search in Qdrant
-        best_match = qdrant_service.find_best_match(embedding)
-        
-        if not best_match or best_match.get('score', 0) < 0.6:  # Threshold
+            logger.warning("Failed to generate embedding for description")
             return SingleMatchResponse(
                 Invoice_Description=request.description,
+                Document_Type="",
+                Document_ID="",
+                Part_description=None,
+                Part_ID=None,
+                Unit_of_measure=None,
+                Similarity_Score=None,
+                Matched="No"
+            )
+        
+        logger.debug("Searching for best match in Qdrant")
+        best_match = qdrant_service.find_best_match(embedding)
+        best_match_in_inv_po = qdrant_service.find_best_match_in_inv_po(embedding)
+        
+        if not best_match or 'payload' not in best_match:
+            logger.info("No matching part found for the description")
+            return SingleMatchResponse(
+                Invoice_Description=request.description,
+                Document_Type="",
+                Document_ID="",
                 Part_description=None,
                 Part_ID=None,
                 Unit_of_measure=None,
@@ -492,22 +584,36 @@ async def single_match(request: SingleMatchRequest):
             )
             
         payload = best_match.get('payload', {})
+        payload2 = best_match_in_inv_po.get('payload', {})
+        original_line_item_data = payload2.get('original_line_item_data', {})
+        
+        logger.info(f"Found match with score: {best_match.get('score', 0):.4f}")
+        logger.debug(f"Match payload: {payload}")
+
+        print(f"payload : {payload}")
+        print(f"payload2 : {payload2}")
+                
         return SingleMatchResponse(
             Invoice_Description=request.description,
+            Document_Type=str(payload2.get('doc_type', '')),
+            Document_ID=str(payload2.get('doc_id', '')),
             Part_description=payload.get('description'),
             Part_ID=payload.get('part_number'),
-            Unit_of_measure=payload.get('unit_of_measure'),
+            Unit_of_measure=original_line_item_data.get('unit'),
             Similarity_Score=round(best_match.get('score', 0), 4),
             Matched="Yes" if best_match.get('score', 0) >= 0.6 else "No"
         )
         
-    except HTTPException:
+    except HTTPException as he:
+        logger.error(f"HTTP error in single_match: {str(he)}", exc_info=True)
         raise
     except Exception as e:
+        logger.error(f"Unexpected error in single_match: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error processing match request: {str(e)}"
         )
+
 
 # Health check endpoint
 @app.get("/health")

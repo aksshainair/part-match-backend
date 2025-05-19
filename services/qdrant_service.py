@@ -13,7 +13,7 @@ class QdrantService:
         self.qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
         self.qdrant_api_key = os.getenv("QDRANT_API_KEY")
         self.collection_name = "parts_catalog"
-        self.inv_po_collection_name = "inv_po_data"
+        self.inv_po_collection_name = "inv_po_data_2"
         
         # Initialize Qdrant client
         self.client = QdrantClient(
@@ -32,6 +32,17 @@ class QdrantService:
         if self.collection_name not in collection_names:
             self.client.create_collection(
                 collection_name=self.collection_name,
+                vectors_config={
+                    "text": models.VectorParams(
+                        size=3072,  # For text-embedding-3-large
+                        distance=models.Distance.COSINE
+                    )
+                }
+            )
+
+        if self.inv_po_collection_name not in collection_names:
+            self.client.create_collection(
+                collection_name=self.inv_po_collection_name,
                 vectors_config={
                     "text": models.VectorParams(
                         size=3072,  # For text-embedding-3-large
@@ -66,7 +77,7 @@ class QdrantService:
             points=points
         )
     
-    def search(self, query_vector: List[float], top_k: int = 5, score_threshold: float = 0.6):
+    def search(self, query_vector: List[float], top_k: int = 5, score_threshold: float = 0.6, collection_name: str = "parts_catalog"):
         """
         Search for similar documents in the Qdrant collection.
         
@@ -78,11 +89,19 @@ class QdrantService:
         Returns:
             List of matching documents with scores
         """
-        search_result = self.client.search(
-            collection_name=self.collection_name,
-            query_vector=query_vector,
-            limit=top_k,
-            score_threshold=score_threshold
+        if collection_name == "parts_catalog":
+            search_result = self.client.search(
+                collection_name=collection_name,
+                query_vector=query_vector,
+                limit=top_k,
+                score_threshold=score_threshold
+            )
+        else:
+            search_result = self.client.search(
+                collection_name=collection_name,
+                query_vector=("text", query_vector),
+                limit=top_k,
+                score_threshold=score_threshold
         )
         
         return search_result
@@ -98,6 +117,27 @@ class QdrantService:
             Best matching document or None if no match found
         """
         results = self.search(query_vector, top_k=1)
+        if not results:
+            return None
+            
+        best_match = results[0]
+        return {
+            "id": best_match.id,
+            "score": best_match.score,
+            "payload": best_match.payload
+        }
+    
+    def find_best_match_in_inv_po(self, query_vector: List[float]) -> Optional[Dict[str, Any]]:
+        """
+        Find the single best matching document.
+        
+        Args:
+            query_vector: Query embedding vector
+            
+        Returns:
+            Best matching document or None if no match found
+        """
+        results = self.search(query_vector, top_k=1, collection_name=self.inv_po_collection_name)
         if not results:
             return None
             
@@ -140,11 +180,10 @@ class QdrantService:
         point_id = str(uuid.uuid4())
         point = models.PointStruct(
             id=point_id,
-            vector=embedding,
+            vector={"text": embedding},  # Match the vector name 'text' from the collection config
             payload=metadata
         )
         self.client.upsert(
             collection_name=self.inv_po_collection_name,
             points=[point]
         )
-        
