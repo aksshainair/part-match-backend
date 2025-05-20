@@ -107,10 +107,9 @@ def parse_document_with_llm(text: str, doc_type_hint: str = None) -> Dict[str, A
                 {"role": "user", "content": f"Document text:\n---\n{text}\n---\nParse and output JSON as described."}
             ],
             temperature=0.0,
-            max_tokens=2048,
             response_format={"type": "json_object"}
         )
-        
+
         content = response.choices[0].message.content
         parsed = json.loads(content)
         
@@ -461,7 +460,7 @@ async def batch_match_document(document_id: str):
             detail=f"Error processing document: {str(e)}"
         )
 
-@app.post("/single-match/", response_model=SingleMatchResponse)
+# @app.post("/single-match/", response_model=SingleMatchResponse)
 # async def single_match(request: SingleMatchRequest):
 #     """
 #     Find the best matching part for a single line item description.
